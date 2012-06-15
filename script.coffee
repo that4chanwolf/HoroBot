@@ -65,8 +65,7 @@ client.addListener 'message', (nick, to, message) ->
   if message.match '^\.thread'
     console.log "THREAD command given, saying thread."
     commandargs = message.split " "
-    # TODO: Change this long line. Seriously
-    if commandargs[1] isnt undefined and (nick is 'that4chanwolf' or nick is 'yttrium' or nick is 'Suiseiseki' or nick is 'Neru' or nick is 'MrFreeman' or nick is 'HarHar' or nick is 'HamHam' or nick is 'ImNinjah') 
+    if commandargs[1] isnt undefined and (nick in rc.Config.allowedUsers) 
         # Does the argument supplied match a url?
         if commandargs[1].match '^https?:\/\/.*'
             console.log "THREAD ID: " + commandargs[1]
@@ -90,7 +89,7 @@ client.addListener 'message', (nick, to, message) ->
     else
         say "Current thread: " + thread
   # For changing the end message of the topic
-  if message.match '^\.extra'
+  if message.match '^\.extra' and (nick in rc.Config.allowedUsers) 
     console.log "EXTRA command given"
     # Have to do this a little differently than the .thread command
     commandargs = message.replace /^\.extra /,''
@@ -102,7 +101,7 @@ client.addListener 'message', (nick, to, message) ->
         writeTopic finaltopic
         say '.topic ' + topic
   # For setting the begining message of the topic
-  if message.match '^\.title'
+  if message.match '^\.title' and (nick in rc.Config.allowedUsers) 
     console.log "TITLE command given"
     commandargs = message.replace /^\.title /,''
     if commandargs isnt ''

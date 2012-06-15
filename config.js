@@ -6,4 +6,9 @@ exports.Config = {
     'channel': '#chan',
     'NSPassword': 'nickServPassword',
     'topicFile': 'topic.txt',
+    'allowedUsers': [
+        'user1',
+        'user2',
+        'user3'
+    ]
 };
