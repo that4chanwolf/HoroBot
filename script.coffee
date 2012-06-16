@@ -57,10 +57,12 @@ client = new irc.Client rc.Config.network, rc.Config.nickName,
   realName: rc.Config.realName
   channels: [rc.Config.channel]
 
+client.addListener 'registered', () ->
+    console.log 'Connected!'
+
 # This is mainly for Rizon, if we get a ctcp request, identify ourselves with NickServ
 client.addListener 'ctcp', () ->
     client.say 'NickServ', 'identify ' + rc.Config.NSPassword
-    console.log 'Connected and verified!'
 
 # Our big thin, listen up
 client.addListener 'message', (nick, to, message) ->
@@ -77,7 +79,7 @@ client.addListener 'message', (nick, to, message) ->
             setTopic finaltopic
             writeTopic finaltopic
             client.notice rc.Config.channel, 'Thread changed: ' + thread
-            say '.topic ' + topic
+            client.say 'ChanServ', 'topic ' + rc.Config.channel + ' '+ topic
         # Does the argument supplied match 'del' or 'delete'
         else if commandargs[1].match '^del(ete)'
             console.log 'Thread deleted!'
@@ -86,7 +88,7 @@ client.addListener 'message', (nick, to, message) ->
             setTopic finaltopic
             writeTopic finaltopic
             client.notice rc.Config.channel, 'Thread over, everyone can go home now.'
-            say '.topic ' + topic
+            client.say 'ChanServ', 'topic ' + rc.Config.channel + ' '+ topic
         else
             say "Current thread: " + thread
     # No command given/user isn't privledged enough to change the thread
@@ -103,26 +105,25 @@ client.addListener 'message', (nick, to, message) ->
         finaltopic = {'title':title,'thread':thread,'extra':commandargs}
         setTopic finaltopic
         writeTopic finaltopic
-        say '.topic ' + topic
+        client.say 'ChanServ', 'topic ' + rc.Config.channel + ' '+ topic
   # For setting the begining message of the topic
   if message.match '^\.title' 
     console.log "TITLE command given"
     commandargs = message.replace /^\.title /,''
     if commandargs isnt undefined and (nick in rc.Config.allowedUsers) 
         console.log "TITLE: " + commandargs
-        if commandargs isnt undefined
-            title = commandargs
-            finaltopic = {'title':title,'thread':thread,'extra':extra}
-            setTopic finaltopic
-            writeTopic finaltopic
-            say '.topic ' + topic
+        title = commandargs
+        finaltopic = {'title':title,'thread':thread,'extra':extra}
+        setTopic finaltopic
+        writeTopic finaltopic
+        client.say 'ChanServ', 'topic ' + rc.Config.channel + ' '+ topic
   # In case SOMEONE fucks up the title
   if message.match '^\.refresh ?$'
     console.log 'REFRESH command given'
     finaltopic = {'title':title,'thread':thread,'extra':extra}
     setTopic finaltopic
     writeTopic finaltopic
-    say '.topic ' + topic
+    client.say 'ChanServ', 'topic ' + rc.Config.channel + ' '+ topic
   # Haikus, sigh.
   if message.match '^\.haikus$'
     say 'Go to bed, Haikus.'
@@ -133,10 +134,10 @@ client.addListener 'message', (nick, to, message) ->
   if message.match '^\.squid$' 
     if nick is 'that4chanwolf'
         setTimeout ->
-            client.action Config.channel, 'brings ImNinjah into a tight embrace'
+            client.action rc.Config.channel, 'brings ImNinjah into a tight embrace'
         , 750
         setTimeout ->
-            client.action Config.channel, "whispers 'I love you' softly into ImNinjah's ear"
+            client.action rc.Config.channel, "whispers 'I love you' softly into ImNinjah's ear"
         , 1250
         setTimeout ->
             say 'Hey, ImNinjah.'
@@ -145,26 +146,26 @@ client.addListener 'message', (nick, to, message) ->
             say "I'm sorry."
         , 19750
         setTimeout ->
-            client.action Config.channel, 'uses Rain Dance'
+            client.action rc.Config.channel, 'uses Rain Dance'
         , 21000
         setTimeout ->
-            client.action Config.channel, 'uses Thunder on ImNinjah'
+            client.action rc.Config.channel, 'uses Thunder on ImNinjah'
         , 22000
         setTimeout ->
-            client.action Config.channel, 'uses Thunder on ImNinjah'
+            client.action rc.Config.channel, 'uses Thunder on ImNinjah'
         , 22500
         setTimeout ->
-            client.action Config.channel, 'uses Thunder on ImNinjah'
+            client.action rc.Config.channel, 'uses Thunder on ImNinjah'
         , 23000 
         setTimeout -> 
-            client.action Config.channel, 'uses Thunder on ImNinjah'
+            client.action rc.Config.channel, 'uses Thunder on ImNinjah'
         , 23500
         setTimeout -> 
-            client.action Config.channel, 'uses Thunder on ImNinjah'
+            client.action rc.Config.channel, 'uses Thunder on ImNinjah'
         , 24000
 
     else if nick is 'ImNinjah'
-        client.action Config.channel, 'eats ImNinjah with a spoon'
+        client.action rc.Config.channel, 'eats ImNinjah with a spoon'
     else
         say 'I wish I knew how to kick with the Node.js IRC module, '+nick+'. I really wish I did.'
   if message.match '^\.alert'
