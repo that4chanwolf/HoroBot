@@ -89,22 +89,22 @@ client.addListener 'message', (nick, to, message) ->
     else
         say "Current thread: " + thread
   # For changing the end message of the topic
-  if message.match '^\.extra' and (nick in rc.Config.allowedUsers) 
+  if message.match '^\.extra'
     console.log "EXTRA command given"
     # Have to do this a little differently than the .thread command
     commandargs = message.replace /^\.extra /,''
     console.log "EXTRAS: " + commandargs
-    if commandargs isnt undefined
+    if commandargs isnt undefined and (nick in rc.Config.allowedUsers)
         extra = commandargs
         finaltopic = {'title':title,'thread':thread,'extra':commandargs}
         setTopic finaltopic
         writeTopic finaltopic
         say '.topic ' + topic
   # For setting the begining message of the topic
-  if message.match '^\.title' and (nick in rc.Config.allowedUsers) 
+  if message.match '^\.title'
     console.log "TITLE command given"
     commandargs = message.replace /^\.title /,''
-    if commandargs isnt ''
+    if commandargs isnt undefined and (nick in rc.Config.allowedUsers) 
         console.log "TITLE: " + commandargs
         if commandargs isnt undefined
             title = commandargs
