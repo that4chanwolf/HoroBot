@@ -14,7 +14,18 @@ topic = null
 title = null
 thread = null
 extra = null
+uname = null
 rc = require './config'
+
+# Yup, a section JUST for uname. How fun.
+run = (cmd) ->
+    _exec = require('child_process').exec
+    puts = (error, stdout, stderr) ->
+        stdout = stdout.replace /\n$/,''
+        uname = stdout
+
+    _exec cmd, puts
+run 'uname -s -r -i'
 
 # Function that sets the topic from a JSON object
 setTopic = (parsedData) ->
@@ -179,8 +190,7 @@ client.addListener 'message', (nick, to, message) ->
         client.notice rc.Config.channel, 'ALERT: Thread 404 without notice! Possible janitor/mod! Check to see if you\'re banned!'
   # Displays our version number
   if message.match '^\.version'
-    # TODO: Use the output of `uname -s -r -i` instead of having it hard coded in
-    say 'HoroBot, version 0.1.2, on Darwin 11.0.0 K48AP. Git repo here: https://gitorious.org/horobot/horobot'
+    say 'HoroBot, version 0.1.2, on '+uname+'. Git repo here: https://gitorious.org/horobot/horobot'
   # Regular old message
   else
     console.log 'MESSAGE from ' + nick + ', message: ' + message
