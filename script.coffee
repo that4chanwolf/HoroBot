@@ -28,16 +28,18 @@ setTopic = (parsedData) ->
 writeTopic = (parsedData) ->
     fs.writeFile rc.Config.topicFile, JSON.stringify(parsedData), () ->
         console.log 'Wrote topic to ' + rc.Config.topicFile
+        return
 
 # Function that says stuff to the chat, with a slight delay so it isn't so floody
 sayLock = false
 say = (message) ->
-  if !sayLock
+  unless sayLock
       sayLock = true
       setTimeout ->
           client.say rc.Config.channel, message
           sayLock = false
       , 750
+  return
 
 # Reads from the topic file and sets the topic
 fs.readFile rc.Config.topicFile, (err, data) ->
@@ -58,11 +60,12 @@ client = new irc.Client rc.Config.network, rc.Config.nickName,
 # This is mainly for Rizon, if we get a ctcp request, identify ourselves with NickServ
 client.addListener 'ctcp', () ->
     client.say 'NickServ', 'identify ' + rc.Config.NSPassword
+    console.log 'Connected and verified!'
 
 # Our big thin, listen up
 client.addListener 'message', (nick, to, message) ->
   # For adding/deleting the thread
-  if message.match '^\.thread'
+  if message.match '^\.thread' 
     console.log "THREAD command given, saying thread."
     commandargs = message.split " "
     if commandargs[1] isnt undefined and (nick in rc.Config.allowedUsers) 
@@ -77,6 +80,7 @@ client.addListener 'message', (nick, to, message) ->
             say '.topic ' + topic
         # Does the argument supplied match 'del' or 'delete'
         else if commandargs[1].match '^del(ete)'
+            console.log 'Thread deleted!'
             thread = "N/A"
             finaltopic = {'title':title,'thread':thread,'extra':extra}
             setTopic finaltopic
@@ -89,19 +93,19 @@ client.addListener 'message', (nick, to, message) ->
     else
         say "Current thread: " + thread
   # For changing the end message of the topic
-  if message.match '^\.extra'
+  if message.match '^\.extra' 
     console.log "EXTRA command given"
     # Have to do this a little differently than the .thread command
     commandargs = message.replace /^\.extra /,''
-    console.log "EXTRAS: " + commandargs
     if commandargs isnt undefined and (nick in rc.Config.allowedUsers)
+        console.log "EXTRAS: " + commandargs
         extra = commandargs
         finaltopic = {'title':title,'thread':thread,'extra':commandargs}
         setTopic finaltopic
         writeTopic finaltopic
         say '.topic ' + topic
   # For setting the begining message of the topic
-  if message.match '^\.title'
+  if message.match '^\.title' 
     console.log "TITLE command given"
     commandargs = message.replace /^\.title /,''
     if commandargs isnt undefined and (nick in rc.Config.allowedUsers) 
@@ -163,8 +167,25 @@ client.addListener 'message', (nick, to, message) ->
         client.action Config.channel, 'eats ImNinjah with a spoon'
     else
         say 'I wish I knew how to kick with the Node.js IRC module, '+nick+'. I really wish I did.'
+  if message.match '^\.alert'
+    commandargs = message.replace /^\.alert /,''
+    console.log commandargs
+    if commandargs is 'ban'
+        client.notice rc.Config.channel, 'ALERT: Ban wave! Reset your modems and rev up those proxies!'
+    if commandargs is 'cf' or commandargs is 'cloudflare' or commandargs is 'down'
+        client.notice rc.Config.channel, 'ALERT: 4chan is down! CloudFlare is being Cloudflare again!'
+    if commandargs is 'janitor' or commandargs is 'mod' or commandargs is 'moot'
+        client.notice rc.Config.channel, 'ALERT: Thread 404 without notice! Possible janitor/mod! Check to see if you\'re banned!'
   # Displays our version number
   if message.match '^\.version'
     # TODO: Use the output of `uname -s -r -i` instead of having it hard coded in
-    say 'HoroBot, version 0.1.1, on Darwin 11.0.0 K48AP'
+    say 'HoroBot, version 0.1.2, on Darwin 11.0.0 K48AP. Git repo here: https://gitorious.org/horobot/horobot'
+  # Regular old message
+  else
+    console.log 'MESSAGE from ' + nick + ', message: ' + message
   return
+
+# Kicks
+client.addListener 'kick', (channel, nick, from, reason='No reason') ->
+    console.log 'KICK: nick: ' + nick + ', from: ' + from + ', reason: ' + reason
+
