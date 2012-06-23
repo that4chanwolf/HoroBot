@@ -34,7 +34,6 @@ setTopic = (parsedData) ->
     thread = parsedData['thread']
     extra = parsedData['extra']
     topic = title + c.yellow(' || ') + 'Current thread: ' + thread + c.yellow(' || ') + extra
-    threadCheck title
     return
 
 # Function that writes the topic to a file specified in the config,js file
@@ -52,14 +51,19 @@ log = (msg) ->
     return
 threadCheck = (thread) ->
     if thread?
-        thread = thread.split '/'
-        tpath = '/'+ thread[3] + '/'+ thread[4] + '/' + thread[5]
-        setInterval () ->
+        threads = thread.split '/'
+        tpath = '/'+ threads[3] + '/'+ threads[4] + '/' + threads[5]
+       	tcheck = setInterval (tpath) ->
             _req = http.get {host:'boards.4chan.org',port:80,path:tpath}, (res) ->
                 log "Status code: #{res.statusCode}"
                 if res.statusCode is 404
                     client.notice rc.Config.channel, 'Thread 404\'d!'
-                    clearInterval()
+                    log "Thread 404'd, clearing tcheck interval"
+                    finaltopic = {'title':title,'thread':'N/A','extra':extra}
+                    setTopic finaltopic
+                    writeTopic finaltopic
+                    client.say 'ChanServ', 'topic ' + rc.Config.channel + ' '+ topic
+                    clearInterval tcheck
         , 20000
 
 # Reads from the topic file and sets the topic
@@ -103,6 +107,7 @@ client.addListener 'message', (nick, to, message) ->
             writeTopic finaltopic
             client.notice rc.Config.channel, 'Thread changed: ' + thread
             client.say 'ChanServ', 'topic ' + rc.Config.channel + ' '+ topic
+            threadCheck title
         else
             say "Current thread: " + thread
     # No command given/user isn't privledged enough to change the thread
