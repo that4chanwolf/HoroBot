@@ -81,8 +81,8 @@ client.addListener 'registered', () ->
     log 'Connected!'
 
 # This is mainly for Rizon, if we get a ctcp request, identify ourselves with NickServ
-client.addListener 'ctcp', () ->
-  if nick is 'py-ctcp'
+client.addListener 'ctcp', (from) ->
+  if from is 'py-ctcp'
     client.say 'NickServ', 'identify ' + rc.Config.NSPassword
     log 'Registered with NickServ!'
 
