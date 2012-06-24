@@ -17,6 +17,7 @@ thread = null
 extra = null
 uname = null
 rc = require './config'
+modules = require('./modules').modules
 
 # Yup, a section JUST for uname. How fun.
 run = (cmd) ->
@@ -155,9 +156,12 @@ client.addListener 'message', (nick, to, message) ->
         client.notice rc.Config.channel, 'ALERT: 4chan is down! CloudFlare is being Cloudflare again!'
     if commandargs is 'janitor' or commandargs is 'mod' or commandargs is 'moot'
         client.notice rc.Config.channel, 'ALERT: Thread 404 without notice! Possible janitor/mod! Check to see if you\'re banned!'
+  for i in rc.Config.modules
+    if message.match modules[i][0]
+        modules[i][1] client, rc, nick, message
   # Displays our version number
   if message.match /^\$version/i
-    say 'HoroBot, version 2.0.0, on '+uname+'. Git repo here: https://gitorious.org/horobot/horobot'
+    say 'HoroBot, version 2.1.0, on '+uname+'. Git repo here: https://gitorious.org/horobot/horobot'
   # Regular old message
   else
     log 'MESSAGE from ' + nick + ', message: ' + message
