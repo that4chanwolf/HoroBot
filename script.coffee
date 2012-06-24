@@ -161,7 +161,7 @@ client.addListener 'message', (nick, to, message) ->
         modules[i][1] client, rc, nick, message
   # Displays our version number
   if message.match /^\$version/i
-    say 'HoroBot, version 2.1.0, on '+uname+'. Git repo here: https://gitorious.org/horobot/horobot'
+    say 'HoroBot, version 0.2.1, on '+uname+'. Git repo here: https://gitorious.org/horobot/horobot'
   # Regular old message
   else
     log 'MESSAGE from ' + nick + ', message: ' + message
