@@ -51,21 +51,26 @@ log = (msg) ->
     console.log date + " [-] " + msg
     return
 threadCheck = (thread) ->
-    if thread?
-        threads = thread.split '/'
-        tpath = '/'+ threads[3] + '/'+ threads[4] + '/' + threads[5]
-       	tcheck = setInterval (tpath) ->
-            _req = http.get {host:'boards.4chan.org',port:80,path:tpath}, (res) ->
-                log "Status code: #{res.statusCode}"
-                if res.statusCode is 404
-                    client.notice rc.Config.channel, 'Thread 404\'d!'
-                    log "Thread 404'd, clearing tcheck interval"
-                    finaltopic = {'title':title,'thread':'N/A','extra':extra}
-                    setTopic finaltopic
-                    writeTopic finaltopic
-                    client.say 'ChanServ', 'topic ' + rc.Config.channel + ' '+ topic
-                    clearInterval tcheck
-        , 20000
+	clearInterval tcheck if tcheck?
+	threads = thread.split '/'
+	tpath = '/'+ threads[3] + '/'+ threads[4] + '/' + threads[5]
+	log "Setting tpath variable to: #{tpath}"
+	tcheck = setInterval ->
+		hclient = require('http').createClient 80, 'boards.4chan.org'
+		request = hclient.request 'GET', '/'+ threads[3] + '/'+ threads[4] + '/' + threads[5], {'host':'boards.4chan.org'}
+		request.end()
+		request.on 'response', (res) ->
+			log "Status code: #{res.statusCode}"
+			if res.statusCode is 404
+				log "Thread 404'd, clearing tcheck interval"
+				finaltopic = {'title':title,'thread':'N/A','extra':extra}
+				setTopic finaltopic
+				writeTopic finaltopic
+				client.notice rc.Config.channel, 'Thread 404\'d!'
+				client.say 'ChanServ', 'topic ' + rc.Config.channel + ' '+ topic
+				clearInterval tcheck
+	, 20000
+	return
 
 # Reads from the topic file and sets the topic
 fs.readFile rc.Config.topicFile, (err, data) ->
@@ -94,6 +99,16 @@ client.addListener 'ctcp', (from) ->
 # Our big listener thing
 # TODO: Figure out away to minimize the code in this
 client.addListener 'message', (nick, to, message) ->
+  # For making HoroBot interact with the chatroom
+  if to is rc.Config.nickName and nick in rc.Config.allowedUsers
+    if message.match /^say/
+        commandargs = message.replace /^say /,''
+        say commandargs
+    else if message.match /^act/
+        commandargs = message.replace /^act /,''
+        client.action rc.Config.channel, commandargs
+    else
+        client.say nick, "Whispering isn't nice, #{nick}."
   # For adding/deleting the thread
   if message.match /^\$thread/i
     console.log "THREAD command given, saying thread."
@@ -108,7 +123,7 @@ client.addListener 'message', (nick, to, message) ->
             writeTopic finaltopic
             client.notice rc.Config.channel, 'Thread changed: ' + thread
             client.say 'ChanServ', 'topic ' + rc.Config.channel + ' '+ topic
-            threadCheck title
+            threadCheck thread
         else
             say "Current thread: " + thread
     # No command given/user isn't privledged enough to change the thread
@@ -119,7 +134,8 @@ client.addListener 'message', (nick, to, message) ->
     setTopic finaltopic
     writeTopic finaltopic
     client.notice rc.Config.channel, 'Thread changed: ' + thread
-    client.say 'ChanServ', 'topic ' + rc.Config.channel + ' '+ topic    
+    client.say 'ChanServ', 'topic ' + rc.Config.channel + ' '+ topic
+    clearInterval tcheck
   # For changing the end message of the topic
   if message.match /^\$extra/i
     log "EXTRA command given"
