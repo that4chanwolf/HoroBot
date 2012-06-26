@@ -54,7 +54,7 @@ log = (msg) ->
 # Our function for checking if a thread 404'd
 threadCheck = (thread) ->
 	# If the tcheck variable exists, erase it. We don't want multiple checks going on at once.
-	clearInterval tcheck if tcheck?
+	clearInterval GLOBAL.tcheck
 	# threads(plit) variable
 	threads = thread.split '/'
 	# The tpath variable isn't being used currently, as I've had issues with it.
@@ -82,6 +82,7 @@ threadCheck = (thread) ->
 				# Clear the tcheck value
 				clearInterval tcheck
 	, 20000
+	GLOBAL.tcheck = tcheck
 	return
 
 # Reads from the topic file and sets the topic
