@@ -1,5 +1,18 @@
 fs = require 'fs'
 exec = require('child_process').exec
+sys = require 'util'
+
+# This is for testing if we have all the dependencies
+try
+	require 'irc-colors'
+catch eC
+	console.log 'ERROR: ``irc-colors" is not installed'
+	sys.exit 1
+try
+	require 'irc'
+catch eI
+	console.log 'ERROR: ``irc" is not installed.'
+	sys.exit 1
 
 INPUT = 'script.coffee'
 OUTPUT = 'bot.js'
