@@ -186,6 +186,9 @@ client.addListener 'message', (nick, to, message) ->
 			client.notice rc.Config.channel, 'ALERT: Ban wave! Reset your modems and rev up those proxies!'
 		if commandargs is 'cf' or commandargs is 'cloudflare' or commandargs is 'down'
 			client.notice rc.Config.channel, 'ALERT: 4chan is down! CloudFlare is being Cloudflare again!'
+		else if commandargs.match /^custom .*/
+			commandargs = commandargs.replace /^custom /,''
+			client.notice rc.Config.channel, "ALERT: #{commandargs}"
 	# This is for our modules
 	for i in rc.Config.modules
 		if message.match modules[i][0]
