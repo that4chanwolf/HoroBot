@@ -61,14 +61,15 @@ threadCheck = (thread) ->
 	# It currently just exists to make it easier for logging what will be checked
 	tpath = '/'+ threads[3] + '/'+ threads[4] + '/' + threads[5]
 	log "Setting tpath variable to: #{tpath}"
-	tcheck = setInterval ->
-		# Our http client
-		hclient = require('http').createClient 80, 'boards.4chan.org'
+	tcheck = setInterval (tpath)->
+		# HTTP Options
+		var hopts =
+			host: 'boards.4chan.org',
+			port: 80,
+			path: '/'+ threads[3] + '/'+ threads[4] + '/' + threads[5]
+			method: 'GET'
 		# Request our thread path from boards.4chan.org
-		request = hclient.request 'GET', '/'+ threads[3] + '/'+ threads[4] + '/' + threads[5], {'host':'boards.4chan.org'}
-		request.end()
-		# On a response...
-		request.on 'response', (res) ->
+		request = http.request hopts, (res) ->
 			# Log the status code
 			log "Status code: #{res.statusCode}"
 			if res.statusCode is 404
@@ -81,6 +82,7 @@ threadCheck = (thread) ->
 				client.say 'ChanServ', 'topic ' + rc.Config.channel + ' '+ topic
 				# Clear the tcheck value
 				clearInterval tcheck
+		request.end()
 	, 20000
 	GLOBAL.tcheck = tcheck
 	return
