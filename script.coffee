@@ -63,7 +63,7 @@ threadCheck = (thread) ->
 	log "Setting tpath variable to: #{tpath}"
 	tcheck = setInterval (tpath)->
 		# HTTP Options
-		var hopts =
+		hopts =
 			host: 'boards.4chan.org',
 			port: 80,
 			path: '/'+ threads[3] + '/'+ threads[4] + '/' + threads[5]
