@@ -49,7 +49,32 @@ var threadCheck = function(thread) {
 	}
 	var ts = thread.split('/');
 	var tpath = '/' + ts[3] + '/' + ts[4] + '/' + ts[5];
+	log("tpath variable is now " + tpath);
 	GLOBAL.tcheck = setInterval(function(tpath) {
-		
+		var hopts = {
+			host: 'boards.4chan.org',
+			port: 80,
+			path: '/' + threads[3] + '/' + threads[4] + '/' + threads[5],
+			method: 'GET',
+			headers: {
+				'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:17.0) Gecko/17.0 Firefox/17.0'
+			}
+		};
+		var request = http.request(hopts, function(res) {
+			if(res.statusCode === 404) {
+				log("Thread 404'd, clearing tcheck interval");
+				var ntopic = {
+					'title': title,
+					'thread': 'N/A',
+					'extra': extra
+				};
+				setTopic(ntopic);
+				writeTopic(ntopic);
+				client.notice(rc.channel, "Thread 404'd!");
+				client.say('ChanServ', 'topic ' + rc.channel + ' ' + topic);
+				clearInterval(GLOBAL.tcheck);
+			}
+		});
+		request.end();
 	}, 30000);
 };
