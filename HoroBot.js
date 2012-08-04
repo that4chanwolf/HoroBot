@@ -7,13 +7,6 @@ var http = require('http');
 var fs = require('fs');
 var topic, title, thread, extra;
 
-/* 
- * Loading our config and modules files through fs.readFileSync is better than require, because we can reload our file any time. 
- * It has to be readFileSync because we don't want node continuing on without our required stuff being loaded.
- */
-var rc = JSON.parse(fs.readFileSync('config.js', 'utf8'));
-var modules = JSON.parse(fs.readFileSync('modules.js', 'utf8'));
-
 /*
  * Our logging function.
  * Spits out the date and the message
@@ -21,6 +14,16 @@ var modules = JSON.parse(fs.readFileSync('modules.js', 'utf8'));
 var log = function(msg) {
 	console.log(new Date() + ' - [!] - ' + msg);
 };
+
+/* 
+ * Loading our config and modules files through fs.readFileSync is better than require, because we can reload our file any time. 
+ * It has to be readFileSync because we don't want node continuing on without our required stuff being loaded.
+ */
+log("Parsing rc file");
+var rc = JSON.parse(fs.readFileSync('config.js', 'utf8'));
+log("Parsing modules file");
+var modules = JSON.parse(fs.readFileSync('modules.js', 'utf8'));
+
 
 /*
  * Our setTopic and writeTopic functions. 
@@ -78,3 +81,100 @@ var threadCheck = function(thread) {
 		request.end();
 	}, 30000);
 };
+
+/*
+ * Read our topic file
+ */
+fs.readFile(rc.topicFile, function(err, data) {
+	if(err) throw err;
+	if(data) {
+		setTopic(JSON.parse(data.toString('utf8')));
+	}
+});
+
+/*
+ * Set up our irc client
+ */
+var client = new irc.Client(rc.network, rc.nickName, {
+	userName: rc.userName,
+	realName: rc.realName,
+	channels: [rc.channel]
+});
+
+/*
+ * Register ourselves with NickServ when we connect.
+ */
+client.addListener('registered', function() {
+	log("Connected!");
+	client.say('NickServ', 'identify ' + rc.NSPassword);
+	log("Registered with NickServ");
+});
+
+/*
+ * Here are all our base functions.
+ * $thread - Sets the current thread.
+ * $del - Deletes the current thread.
+ * $extra - Sets the extra text that goes at the end of the topic
+ * $title - Sets the begining text that is the 'intro' to the channel
+ * $alert - Sends an alert to the channel
+ * $version - Sends HoroBot's version to the channel
+ */
+client.addListener('message', function(nick, to, message) {
+	log(nick + ", " + to + ", " + message);
+	if( message.match(/^\$thread/) ) {
+		var args = message.split(' ');
+		if( args[1] && rc.allowedUsers.indexOf(nick) !== -1 ) {
+			if( args[1].match( /^https?:\/\/.*/ ) ) {
+				log('New thread: ' + args[1]);
+				var ntopic = {
+					'title': title,
+					'thread': args[1],
+					'extra': extra
+				};
+				setTopic(ntopic);
+				writeTopic(ntopic);
+				client.notice(rc.channel, 'Thread changed: ' + thread);
+				client.say('ChanServ', 'topic ' + rc.channel + ' ' + topic);
+				threadCheck(thread);
+			} else {
+				client.say(rc.channel, 'Current thread: ' + thread);
+			}
+		} else {
+			client.say(rc.channel, 'Current thread: ' + thread);
+		}
+	} else if( message.match(/^\$del ?$/) && rc.allowedUsers.indexOf(nick) !== -1 ) {
+		var ntopic = {
+			'title': title,
+			'thread': 'N/A',
+			'extra': extra
+		};
+		setTopic(ntopic);
+		writeTopic(ntopic);
+		client.notice(rc.channel, 'Thread deleted');
+		client.say('ChanServ', 'topic ' + rc.channel + ' ' + topic);
+		if(GLOBAL.tcheck !== undefined && GLOBAL.tcheck !== null) {
+			clearInterval(GLOBAL.tcheck);
+		}
+	} else if( message.match(/^\$extra /) && rc.allowedUsers.indexOf(nick) !== -1 ) {
+		var args = message.replace(/^\$extra /, '');
+		var ntopic = {
+			'title': title,
+			'thread': thread,
+			'extra': args
+		};
+		setTopic(ntopic);
+		writeTopic(ntopic);
+		client.say('ChanServ', 'topic ' + rc.channel + ' ' + topic);
+	} else if( message.match(/^\$title /) && rc.allowedUsers.indexOf(nick) !== -1 ) {
+		var args = message.replace(/^\$extra /, '');
+		var ntopic = {
+			'title': args,
+			'thread': thread,
+			'extra': extra
+		};
+		setTopic(ntopic);
+		writeTopic(ntopic);
+		client.say('ChanServ', 'topic ' + rc.channel + ' ' + topic);
+	}
+
+});
