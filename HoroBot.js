@@ -166,7 +166,7 @@ client.addListener('message', function(nick, to, message) {
 		writeTopic(ntopic);
 		client.say('ChanServ', 'topic ' + rc.channel + ' ' + topic);
 	} else if( message.match(/^\$title /) && rc.allowedUsers.indexOf(nick) !== -1 ) {
-		var args = message.replace(/^\$extra /, '');
+		var args = message.replace(/^\$title /, '');
 		var ntopic = {
 			'title': args,
 			'thread': thread,
@@ -175,6 +175,15 @@ client.addListener('message', function(nick, to, message) {
 		setTopic(ntopic);
 		writeTopic(ntopic);
 		client.say('ChanServ', 'topic ' + rc.channel + ' ' + topic);
+	} else if( message.match(/^\$alert /) && rc.allowedUsers.indexOf(nick) !== -1 ) {
+		var args = message.replace(/^\$alert /, '');
+		client.notice(rc.channel, 'ALERT: ' + args);
+	} else if( message.match(/^\$version ?/) ) {
+		client.say(rc.channel, 'HoroBot version 0.3.0a');
 	}
-
+	for( var i = 0; i < rc.modules.length; i++ ) {
+		if(message.match(modules[i][0]) {
+			modules[i][1](client, rc, nick, message);
+		}
+	}
 });
