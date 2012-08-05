@@ -11,6 +11,6 @@
 		"user2",
 		"user3"
 	],
-	"modules": [
-	]
+	"admins": [],
+	"modules": []
 }

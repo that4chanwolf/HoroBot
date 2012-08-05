@@ -15,6 +15,16 @@ var log = function(msg) {
 	console.log(new Date() + ' - [!] - ' + msg);
 };
 
+/*
+ * A cool little function that removes an item from an array.
+ * Found on http://ejohn.org/blog/javascript-array-remove/
+ */
+Array.prototype.remove = function(from, to) {
+	var rest = this.slice((to || from) + 1 || this.length);
+	this.length = from < 0 ? this.length + from : from;
+	return this.push.apply(this, rest);
+};
+
 /* 
  * Loading our config and modules files through fs.readFileSync is better than require, because we can reload our file any time. 
  * It has to be readFileSync because we don't want node continuing on without our required stuff being loaded.
@@ -182,8 +192,94 @@ client.addListener('message', function(nick, to, message) {
 		client.say(rc.channel, 'HoroBot version 0.3.0a');
 	}
 	for( var i = 0; i < rc.modules.length; i++ ) {
-		if(message.match(modules[i][0]) {
+		if(message.match(modules[i][0])) {
 			modules[i][1](client, rc, nick, message);
 		}
+	}
+});
+
+/*
+ * Admin functions
+ * Made for managing HoroBot not completely pants-on-head restart-everytime-you-want-to-add-a-user retarded
+ * $refresh - Refreshes config file, topic, and thread checker
+ * $au - Adds a user to the allowedUser list
+ * $ru - Removes a user from the allowedUser list
+ * $aa - Adds a user to the admin list
+ * $ra - Removes a user from the admin list
+ */
+client.addListener('message', function(nick, to, message) {
+	if( message.match(/^\$refresh ?$/) && rc.admins.indexOf(nick) !== -1 ) {
+		// We don't have to wory about other things continuing before our config is ready, so it's time for ASYNC ACTION
+		fs.readFile('config.js', function(err, data) {
+			if( err ) {
+				client.say(rc.channel, "There was an error reading/parsing the configuration file, shutting down...");
+				var msg = err.split("\n");
+				for(i in msg) {
+					log(msg[i]);
+				}
+				process.exit(1);
+			} else if( data ) {
+				rc = JSON.parse(data.toString('utf8'));
+				log("Configuration reloaded successfully");
+			}
+		});
+	} else if( message.match(/^\$au /) && rc.admins.indexOf(nick) !== -1 ) {
+		var args = message.split(" ")[1];
+		rc.allowedUsers.push(args);
+		fs.writeFile('config.js', JSON.stringify(rc, null, "\t"), function(err, saved) {
+			if( err ) {
+				client.say(rc.channel, "There was an error writing the configuration file, shutting down...");
+				var msg = err.split("\n");
+				for(i in msg) {
+					log(msg[i]);
+				}
+				process.exit(1);
+			}
+		});
+	} else if( message.match(/^\$ru /) && rc.admins.indexOf(nick) !== -1 ) {
+		var args = message.split(" ")[1];
+		if( rc.allowedUsers.indexOf(args) !== -1 ) {
+			rc.allowedUsers.remove(rc.allowedUsers.indexOf(args));
+		}		
+		fs.writeFile('config.js', JSON.stringify(rc, null, "\t"), function(err, saved) {
+			if( err ) {
+				client.say(rc.channel, "There was an error writing the configuration file, shutting down...");
+				var msg = err.split("\n");
+				for(i in msg) {
+					log(msg[i]);
+				}
+				process.exit(1);
+			}
+		});
+	} else if( message.match(/^\$aa /) && rc.admins.indexOf(nick) !== -1 ) {
+		var args = message.split(" ")[1];
+		rc.admins.push(args);
+		rc.allowedUsers.push(args);
+		fs.writeFile('config.js', JSON.stringify(rc, null, "\t"), function(err, saved) {
+			if( err ) {
+				client.say(rc.channel, "There was an error writing the configuration file, shutting down...");
+				var msg = err.split("\n");
+				for(i in msg) {
+					log(msg[i]);
+				}
+				process.exit(1);
+			}
+		});
+	} else if( message.match(/^\$ra /) && rc.admins.indexOf(nick) !== -1 ) {
+		var args = message.split(" ")[1];
+		if( rc.allowedUsers.indexOf(args) !== -1 && rc.admins.indexOf(args) !== -1 ) {
+			rc.allowedUsers.remove(rc.allowedUsers.indexOf(args));
+			rc.admins.remove(rc.admins.indexOf(args));
+		}
+		fs.writeFile('config.js', JSON.stringify(rc, null, "\t"), function(err, saved) {
+			if( err ) {
+				client.say(rc.channel, "There was an error writing the configuration file, shutting down...");
+				var msg = err.split("\n");
+				for(i in msg) {
+					log(msg[i]);
+				}
+				process.exit(1);
+			}
+		});	
 	}
 });
