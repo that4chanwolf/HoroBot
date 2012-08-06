@@ -26,13 +26,15 @@ Array.prototype.remove = function(from, to) {
 };
 
 /* 
- * Loading our config and modules files through fs.readFileSync is better than require, because we can reload our file any time. 
+ * Loading our config file through fs.readFileSync is better than require, because we can reload our file any time.
  * It has to be readFileSync because we don't want node continuing on without our required stuff being loaded.
+ * On the other hand, JSON doesn't seem to be a fan of Regular Expressions, and I managed to cripple all of my modules I made, so we need to use require().
+ * Lesson learned: Test your shit more rigourously before you push a commit.
  */
 log("Parsing rc file");
 var rc = JSON.parse(fs.readFileSync('config.js', 'utf8'));
 log("Parsing modules file");
-var modules = JSON.parse(fs.readFileSync('modules.js', 'utf8'));
+var modules = require('./modules').modules;
 
 
 /*
@@ -189,7 +191,7 @@ client.addListener('message', function(nick, to, message) {
 		var args = message.replace(/^\$alert /, '');
 		client.notice(rc.channel, 'ALERT: ' + args);
 	} else if( message.match(/^\$version ?/) ) {
-		client.say(rc.channel, 'HoroBot version 0.3.0. Git repo here: https://github.com/that4chanwolf/horobot');
+		client.say(rc.channel, 'HoroBot version 0.3.1. Git repo here: https://github.com/that4chanwolf/horobot');
 	}
 	for( var _i = 0; _i < rc.modules.length; _i++ ) {
 		var i = rc.modules[_i];
