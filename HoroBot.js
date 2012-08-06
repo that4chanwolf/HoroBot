@@ -67,10 +67,10 @@ var threadCheck = function(thread) {
 		var hopts = {
 			host: 'boards.4chan.org',
 			port: 80,
-			path: '/' + threads[3] + '/' + threads[4] + '/' + threads[5],
+			path: tpath,
 			method: 'GET',
 			headers: {
-				'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:17.0) Gecko/17.0 Firefox/17.0'
+				'User-Agent': 'Mozerella/13.37 (X12; Gahnoo/Loonix x86_64; rv:27.0) Gookeh/27.0 Furryfox/27.0'
 			}
 		};
 		var request = http.request(hopts, function(res) {
@@ -189,7 +189,7 @@ client.addListener('message', function(nick, to, message) {
 		var args = message.replace(/^\$alert /, '');
 		client.notice(rc.channel, 'ALERT: ' + args);
 	} else if( message.match(/^\$version ?/) ) {
-		client.say(rc.channel, 'HoroBot version 0.3.0a');
+		client.say(rc.channel, 'HoroBot version 0.3.0. Git repo here: https://github.com/that4chanwolf/horobot');
 	}
 	for( var i = 0; i < rc.modules.length; i++ ) {
 		if(message.match(modules[i][0])) {
@@ -201,14 +201,14 @@ client.addListener('message', function(nick, to, message) {
 /*
  * Admin functions
  * Made for managing HoroBot not completely pants-on-head restart-everytime-you-want-to-add-a-user retarded
- * $refresh - Refreshes config file, topic, and thread checker
+ * $refresh - Refreshes config file, topic, and thread checker * Doesn't require admin privledges
  * $au - Adds a user to the allowedUser list
  * $ru - Removes a user from the allowedUser list
  * $aa - Adds a user to the admin list
  * $ra - Removes a user from the admin list
  */
 client.addListener('message', function(nick, to, message) {
-	if( message.match(/^\$refresh ?$/) && rc.admins.indexOf(nick) !== -1 ) {
+	if( message.match(/^\$refresh ?$/) && rc.allowedUsers.indexOf(nick) !== -1 ) {
 		// We don't have to wory about other things continuing before our config is ready, so it's time for ASYNC ACTION
 		fs.readFile('config.js', function(err, data) {
 			if( err ) {
@@ -223,6 +223,30 @@ client.addListener('message', function(nick, to, message) {
 				log("Configuration reloaded successfully");
 			}
 		});
+		fs.readFile('modules.js', function(err, data) {
+			if( err ) {
+				client.say(rc.channel, "There was an error reading/parsing the modules file, shutting down...");
+				var msg = err.split("\n");
+				for(i in msg) {
+					log(msg[i]);
+				}
+				process.exit(1);
+			} else if( data ) {
+				rc = JSON.parse(data.toString('utf8'));
+				log("Modules reloaded successfully");
+			}
+		});
+		// Read our topic file
+		fs.readFile(rc.topicFile, function(err, data) {
+			if(err) throw err;
+			if(data) {
+				setTopic(JSON.parse(data.toString('utf8')));
+			}
+		});
+		client.say('ChanServ', 'topic ' + rc.channel + ' ' + topic);
+		if( thread.match( /^https?:\/\/.*/ ) ) {
+			threadCheck(thread);
+		}
 	} else if( message.match(/^\$au /) && rc.admins.indexOf(nick) !== -1 ) {
 		var args = message.split(" ")[1];
 		rc.allowedUsers.push(args);
