@@ -191,7 +191,8 @@ client.addListener('message', function(nick, to, message) {
 	} else if( message.match(/^\$version ?/) ) {
 		client.say(rc.channel, 'HoroBot version 0.3.0. Git repo here: https://github.com/that4chanwolf/horobot');
 	}
-	for( var i = 0; i < rc.modules.length; i++ ) {
+	for( var _i = 0; _i < rc.modules.length; _i++ ) {
+		var i = rc.modules[_i];
 		if(message.match(modules[i][0])) {
 			modules[i][1](client, rc, nick, message);
 		}
