@@ -238,10 +238,8 @@ client.addListener('message', function(nick, to, message) {
 			threadCheck(thread);
 		}
 	} else if( message.match(/^\$au /) && rc.admins.indexOf(nick) !== -1 ) {
-		var args = message.split(" ").splice(0, 1);
-		for( i in args ) {
-			rc.allowedUsers.push(args[i]);
-		}
+		var args = message.split(" ")[1];
+		rc.allowedUsers.push(args);
 		fs.writeFile('config.js', JSON.stringify(rc, null, "\t"), function(err, saved) {
 			if( err ) {
 				client.say(rc.channel, "There was an error writing the configuration file, shutting down...");
@@ -253,12 +251,10 @@ client.addListener('message', function(nick, to, message) {
 			}
 		});
 	} else if( message.match(/^\$ru /) && rc.admins.indexOf(nick) !== -1 ) {
-		var args = message.split(" ").splice(0, 1);
-		for( i in args) {
-			if( rc.allowedUsers.indexOf(args[i]) !== -1 ) {
-				rc.allowedUsers.remove(rc.allowedUsers.indexOf(args[i]));
-			}
-		}
+		var args = message.split(" ")[1];
+		if( rc.allowedUsers.indexOf(args) !== -1 ) {
+			rc.allowedUsers.remove(rc.allowedUsers.indexOf(args));
+		}		
 		fs.writeFile('config.js', JSON.stringify(rc, null, "\t"), function(err, saved) {
 			if( err ) {
 				client.say(rc.channel, "There was an error writing the configuration file, shutting down...");
@@ -270,11 +266,9 @@ client.addListener('message', function(nick, to, message) {
 			}
 		});
 	} else if( message.match(/^\$aa /) && rc.admins.indexOf(nick) !== -1 ) {
-		var args = message.split(" ").splice(0, 1);
-		for( i in args ) {
-			rc.admins.push(args[i]);
-			rc.allowedUsers.push(args[i]);
-		}
+		var args = message.split(" ")[1];
+		rc.admins.push(args);
+		rc.allowedUsers.push(args);
 		fs.writeFile('config.js', JSON.stringify(rc, null, "\t"), function(err, saved) {
 			if( err ) {
 				client.say(rc.channel, "There was an error writing the configuration file, shutting down...");
@@ -286,12 +280,10 @@ client.addListener('message', function(nick, to, message) {
 			}
 		});
 	} else if( message.match(/^\$ra /) && rc.admins.indexOf(nick) !== -1 ) {
-		var args = message.split(" ").splice(0, 1);
-		for( i in args) {
-			if( rc.allowedUsers.indexOf(args[i]) !== -1 ) {
-				rc.allowedUsers.remove(rc.allowedUsers.indexOf(args[i]));
-				rc.admins.remove(rc.admins.indexOf(args));
-			}
+		var args = message.split(" ")[1];
+		if( rc.allowedUsers.indexOf(args) !== -1 && rc.admins.indexOf(args) !== -1 ) {
+			rc.allowedUsers.remove(rc.allowedUsers.indexOf(args));
+			rc.admins.remove(rc.admins.indexOf(args));
 		}
 		fs.writeFile('config.js', JSON.stringify(rc, null, "\t"), function(err, saved) {
 			if( err ) {
