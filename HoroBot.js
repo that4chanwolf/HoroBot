@@ -86,7 +86,7 @@ var threadCheck = function(thread) {
 				setTopic(ntopic);
 				writeTopic(ntopic);
 				client.notice(rc.channel, "Thread 404'd!");
-				client.say('ChanServ', 'topic ' + rc.channel + ' ' + topic);
+				client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
 				clearInterval(GLOBAL.tcheck);
 			}
 		});
@@ -146,7 +146,7 @@ client.addListener('message', function(nick, to, message) {
 				setTopic(ntopic);
 				writeTopic(ntopic);
 				client.notice(rc.channel, 'Thread changed: ' + thread);
-				client.say('ChanServ', 'topic ' + rc.channel + ' ' + topic);
+				client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
 				threadCheck(thread);
 			} else {
 				client.say(rc.channel, 'Current thread: ' + thread);
@@ -163,7 +163,7 @@ client.addListener('message', function(nick, to, message) {
 		setTopic(ntopic);
 		writeTopic(ntopic);
 		client.notice(rc.channel, 'Thread deleted');
-		client.say('ChanServ', 'topic ' + rc.channel + ' ' + topic);
+		client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
 		if(GLOBAL.tcheck !== undefined && GLOBAL.tcheck !== null) {
 			clearInterval(GLOBAL.tcheck);
 		}
@@ -176,7 +176,7 @@ client.addListener('message', function(nick, to, message) {
 		};
 		setTopic(ntopic);
 		writeTopic(ntopic);
-		client.say('ChanServ', 'topic ' + rc.channel + ' ' + topic);
+		client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
 	} else if( message.match(/^\$title /) && rc.allowedUsers.indexOf(nick) !== -1 ) {
 		var args = message.replace(/^\$title /, '');
 		var ntopic = {
@@ -186,7 +186,7 @@ client.addListener('message', function(nick, to, message) {
 		};
 		setTopic(ntopic);
 		writeTopic(ntopic);
-		client.say('ChanServ', 'topic ' + rc.channel + ' ' + topic);
+		client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
 	} else if( message.match(/^\$alert /) && rc.allowedUsers.indexOf(nick) !== -1 ) {
 		var args = message.replace(/^\$alert /, '');
 		client.notice(rc.channel, 'ALERT: ' + args);
@@ -233,7 +233,7 @@ client.addListener('message', function(nick, to, message) {
 				setTopic(JSON.parse(data.toString('utf8')));
 			}
 		});
-		client.say('ChanServ', 'topic ' + rc.channel + ' ' + topic);
+		client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
 		if( thread.match( /^https?:\/\/.*/ ) ) {
 			threadCheck(thread);
 		}
