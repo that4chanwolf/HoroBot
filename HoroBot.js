@@ -45,7 +45,7 @@ var setTopic = function(data) {
 	title = data['title'];
 	thread = data['thread'];
 	extra = data['extra'];
-	topic = title + irc.colors.yellow + ' || ' + irc.colors.reset + 'Current Thread: ' + thread + irc.colors.yellow + ' || ' + irc.colors.reset + extra;
+	topic = title + irc.colors.codes.yellow + ' || ' + irc.colors.codes.reset + 'Current Thread: ' + thread + irc.colors.codes.yellow + ' || ' + irc.colors.codes.reset + extra;
 };
 var writeTopic = function(data) {
 	fs.writeFile(rc.topicFile, JSON.stringify(data), function() {
