@@ -226,19 +226,6 @@ client.addListener('message', function(nick, to, message) {
 				log("Configuration reloaded successfully");
 			}
 		});
-		fs.readFile('modules.js', function(err, data) {
-			if( err ) {
-				client.say(rc.channel, "There was an error reading/parsing the modules file, shutting down...");
-				var msg = err.split("\n");
-				for(i in msg) {
-					log(msg[i]);
-				}
-				process.exit(1);
-			} else if( data ) {
-				rc = JSON.parse(data.toString('utf8'));
-				log("Modules reloaded successfully");
-			}
-		});
 		// Read our topic file
 		fs.readFile(rc.topicFile, function(err, data) {
 			if(err) throw err;
