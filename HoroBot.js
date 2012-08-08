@@ -59,40 +59,42 @@ var writeTopic = function(data) {
  * Yes, I know global variables are bad, blah blah blah, shut up.
  */
 var threadCheck = function(thread) {
-	if(GLOBAL.tcheck !== undefined && GLOBAL.tcheck !== null) {
-		clearInterval(GLOBAL.tcheck);
-	}
-	var ts = thread.split('/');
-	var tpath = '/' + ts[3] + '/' + ts[4] + '/' + ts[5];
-	log("tpath variable is now " + tpath);
-	GLOBAL.tcheck = setInterval(function(tpath) {
+	clearInterval(GLOBAL.tcheck);
+	threads = thread.split('/');
+	tpath = '/' + threads[3] + '/' + threads[4] + '/' + threads[5];
+	log("Setting tpath variable to: " + tpath);
+	tcheck = setInterval(function(tpath) {
 		var hopts = {
 			host: 'boards.4chan.org',
 			port: 80,
-			path: tpath,
+			path: '/' + threads[3] + '/' + threads[4] + '/' + threads[5],
 			method: 'GET',
 			headers: {
 				'User-Agent': 'Mozerella/13.37 (X12; Gahnoo/Loonix x86_64; rv:27.0) Gookeh/27.0 Furryfox/27.0'
 			}
 		};
 		var request = http.request(hopts, function(res) {
-			if(res.statusCode === 404) {
+			var finaltopic;
+			log("Status code: " + res.statusCode);
+			if (res.statusCode === 404) {
 				log("Thread 404'd, clearing tcheck interval");
-				var ntopic = {
+				finaltopic = {
 					'title': title,
 					'thread': 'N/A',
 					'extra': extra
 				};
-				setTopic(ntopic);
-				writeTopic(ntopic);
-				client.notice(rc.channel, "Thread 404'd!");
+				setTopic(finaltopic);
+				writeTopic(finaltopic);
+				client.notice(rc.channel, 'Thread 404\'d!');
 				client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
-				clearInterval(GLOBAL.tcheck);
+				clearInterval(tcheck);
 			}
 		});
 		request.end();
 	}, 30000);
+	GLOBAL.tcheck = tcheck;
 };
+
 
 /*
  * Read our topic file
@@ -233,8 +235,8 @@ client.addListener('message', function(nick, to, message) {
 				setTopic(JSON.parse(data.toString('utf8')));
 			}
 		});
-		client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
-		if( thread.match( /^https?:\/\/.*/ ) ) {
+		client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8'); 
+		if( thread != 'N/A' ) {
 			threadCheck(thread);
 		}
 	} else if( message.match(/^\$au /) && rc.admins.indexOf(nick) !== -1 ) {
