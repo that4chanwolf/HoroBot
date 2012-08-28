@@ -2,9 +2,12 @@
  * A Node.JS IRC bot made for managing 4chan threads.
  * Have fun.
  */
+ 
+// Include required things, like the IRC module, HTTP module, and file system module
 var irc = require('irc');
 var http = require('http');
 var fs = require('fs');
+// Create empty variables for the topic, title, thread, and extra stuff
 var topic, title, thread, extra;
 
 /*
@@ -59,35 +62,36 @@ var writeTopic = function(data) {
  * Yes, I know global variables are bad, blah blah blah, shut up.
  */
 var threadCheck = function(thread) {
-	clearInterval(GLOBAL.tcheck);
+	clearInterval(GLOBAL.tcheck); // Clear the interval
 	threads = thread.split('/');
-	tpath = '/' + threads[3] + '/' + threads[4] + '/' + threads[5];
+	tpath = '/' + threads[3] + '/' + threads[4] + '/' + threads[5]; // The pathname, looks something like /g/res/83284939999
 	log("Setting tpath variable to: " + tpath);
 	tcheck = setInterval(function(tpath) {
+		// Set out HTTP options
 		var hopts = {
 			host: 'boards.4chan.org',
 			port: 80,
 			path: '/' + threads[3] + '/' + threads[4] + '/' + threads[5],
 			method: 'GET',
 			headers: {
-				'User-Agent': 'Mozerella/13.37 (X12; Gahnoo/Loonix x86_64; rv:27.0) Gookeh/27.0 Furryfox/27.0'
+				'User-Agent': 'Mozerella/13.37 (X12; Gahnoo/Loonix x86_64; rv:27.0) Gookeh/27.0 Furryfox/27.0' // lol so fahnny user agent
 			}
 		};
 		var request = http.request(hopts, function(res) {
 			var finaltopic;
 			log("Status code: " + res.statusCode);
-			if (res.statusCode === 404) {
+			if (res.statusCode === 404) { // 404
 				log("Thread 404'd, clearing tcheck interval");
 				finaltopic = {
-					'title': title,
-					'thread': 'N/A',
+					'title': title, 
+					'thread': 'N/A', // Thread is nonexistant
 					'extra': extra
 				};
 				setTopic(finaltopic);
 				writeTopic(finaltopic);
-				client.notice(rc.channel, 'Thread 404\'d!');
-				client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
-				clearInterval(tcheck);
+				client.notice(rc.channel, 'Thread 404\'d!'); // Send notice to the channel
+				client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8'); // Write to the topic
+				clearInterval(tcheck); // Clear the interval
 			}
 		});
 		request.end();
@@ -137,8 +141,8 @@ client.addListener('message', function(nick, to, message) {
 	log(nick + ", " + to + ", " + message);
 	if( message.match(/^\$thread/) ) {
 		var args = message.split(' ');
-		if( args[1] && rc.allowedUsers.indexOf(nick) !== -1 ) {
-			if( args[1].match( /^https?:\/\/.*/ ) ) {
+		if( args[1] && rc.allowedUsers.indexOf(nick) !== -1 ) { // If the user is in the allowedUsers
+			if( args[1].match( /^https?:\/\/.*/ ) ) {       // And the next argument matches a URL
 				log('New thread: ' + args[1]);
 				var ntopic = {
 					'title': title,
@@ -166,7 +170,7 @@ client.addListener('message', function(nick, to, message) {
 		writeTopic(ntopic);
 		client.notice(rc.channel, 'Thread deleted');
 		client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
-		if(GLOBAL.tcheck !== undefined && GLOBAL.tcheck !== null) {
+		if(GLOBAL.tcheck !== undefined && GLOBAL.tcheck !== null) { // Makes sure it doesn't try and clear an interval that doesn't exist
 			clearInterval(GLOBAL.tcheck);
 		}
 	} else if( message.match(/^\$extra /) && rc.allowedUsers.indexOf(nick) !== -1 ) {
@@ -195,7 +199,7 @@ client.addListener('message', function(nick, to, message) {
 	} else if( message.match(/^\$version ?/) ) {
 		client.say(rc.channel, 'HoroBot version 0.3.1. Git repo here: https://github.com/that4chanwolf/horobot');
 	}
-	for( var _i = 0; _i < rc.modules.length; _i++ ) {
+	for( var _i = 0; _i < rc.modules.length; _i++ ) { // Loop through all our modules
 		var i = rc.modules[_i];
 		if(message.match(modules[i][0])) {
 			modules[i][1](client, rc, nick, message);
@@ -240,8 +244,8 @@ client.addListener('message', function(nick, to, message) {
 			threadCheck(thread);
 		}
 	} else if( message.match(/^\$au /) && rc.admins.indexOf(nick) !== -1 ) {
-		var args = message.split(" ");
-		args.splice(0, 1);
+		var args = message.split(" "); 
+		args.splice(0, 1); // Slice off the first part
 		for(var i = 0; i < args.length; i++ ) {
 			if( args[i] !== "" ) {
 				rc.allowedUsers.push(args[i]);
