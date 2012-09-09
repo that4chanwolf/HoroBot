@@ -8,7 +8,7 @@ var irc = require('irc');
 var http = require('http');
 var fs = require('fs');
 // Create empty variables for the topic, title, thread, and extra stuff
-var topic, title, thread, extra;
+var topic, title, thread, op, extra, posts;
 
 /*
  * Our logging function.
@@ -48,7 +48,8 @@ var setTopic = function(data) {
 	title = data['title'];
 	thread = data['thread'];
 	extra = data['extra'];
-	topic = title + irc.colors.codes.yellow + ' || ' + irc.colors.codes.reset + 'Current Thread: ' + thread + irc.colors.codes.yellow + ' || ' + irc.colors.codes.reset + extra;
+	op = data['op'] || 'N/A';
+	topic = title + irc.colors.codes.yellow + ' || ' + irc.colors.codes.reset + 'Current Thread: ' + thread + irc.colors.codes.yellow + ' || ' + irc.colors.codes.reset + 'OP: ' + op + irc.colors.codes.yellow + ' || ' + irc.colors.codes.reset + extra;
 };
 var writeTopic = function(data) {
 	fs.writeFile(rc.topicFile, JSON.stringify(data), function() {
@@ -64,27 +65,28 @@ var writeTopic = function(data) {
 var threadCheck = function(thread) {
 	clearInterval(GLOBAL.tcheck); // Clear the interval
 	threads = thread.split('/');
-	tpath = '/' + threads[3] + '/' + threads[4] + '/' + threads[5]; // The pathname, looks something like /g/res/83284939999
+	tpath = '/' + threads[3] + '/' + threads[4] + '/' + threads[5] + '.json'; // The pathname, looks something like /g/res/83284939999.json
 	log("Setting tpath variable to: " + tpath);
 	tcheck = setInterval(function(tpath) {
 		// Set out HTTP options
 		var hopts = {
-			host: 'boards.4chan.org',
+			host: 'api.4chan.org',
 			port: 80,
-			path: '/' + threads[3] + '/' + threads[4] + '/' + threads[5],
+			path: '/' + threads[3] + '/' + threads[4] + '/' + threads[5] + '.json',
 			method: 'GET',
 			headers: {
 				'User-Agent': 'Mozerella/13.37 (X12; Gahnoo/Loonix x86_64; rv:27.0) Gookeh/27.0 Furryfox/27.0' // lol so fahnny user agent
 			}
 		};
 		var request = http.request(hopts, function(res) {
-			var finaltopic;
+			var finaltopic, data;
 			log("Status code: " + res.statusCode);
 			if (res.statusCode === 404) { // 404
 				log("Thread 404'd, clearing tcheck interval");
 				finaltopic = {
 					'title': title, 
 					'thread': 'N/A', // Thread is nonexistant
+					'op': 'N/A',
 					'extra': extra
 				};
 				setTopic(finaltopic);
@@ -92,6 +94,33 @@ var threadCheck = function(thread) {
 				client.notice(rc.channel, 'Thread 404\'d!'); // Send notice to the channel
 				client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8'); // Write to the topic
 				clearInterval(tcheck); // Clear the interval
+			} else if(res.statusCode === 200) { // 200 OK
+				res.on('data', function(chunk) {
+					data = data + chunk;
+				});
+				res.on('end', function() {
+					// Shitty work around for parsing this shit
+					fs.writeFile('thedata', data, function() {
+						fs.readFile('thedata', function(err, ndata) {
+							if(err) {
+								throw err;
+							}
+							if(ndata) {
+								posts = JSON.parse(ndata);
+								op = posts['posts'][0].name;
+								finaltopic = {
+									'title': title,
+									'thread': thread,
+									'op': op || 'Anonymous',
+									'extra': extra
+								};
+								setTopic(finaltopic);
+								writeTopic(finaltopic);
+								client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8'); // Write to the topic
+							}
+						});
+					});
+				});
 			}
 		});
 		request.end();
@@ -164,6 +193,7 @@ client.addListener('message', function(nick, to, message) {
 		var ntopic = {
 			'title': title,
 			'thread': 'N/A',
+			'op': 'N/A',
 			'extra': extra
 		};
 		setTopic(ntopic);
@@ -178,6 +208,7 @@ client.addListener('message', function(nick, to, message) {
 		var ntopic = {
 			'title': title,
 			'thread': thread,
+			'op': op,
 			'extra': args
 		};
 		setTopic(ntopic);
@@ -188,6 +219,7 @@ client.addListener('message', function(nick, to, message) {
 		var ntopic = {
 			'title': args,
 			'thread': thread,
+			'op': op,
 			'extra': extra
 		};
 		setTopic(ntopic);
