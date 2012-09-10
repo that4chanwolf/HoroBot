@@ -9,6 +9,7 @@ var http = require('http');
 var fs = require('fs');
 // Create empty variables for the topic, title, thread, and extra stuff
 var topic, title, thread, op, extra, posts;
+var opGrabbed = false;
 
 /*
  * Our logging function.
@@ -79,7 +80,8 @@ var threadCheck = function(thread) {
 			}
 		};
 		var request = http.request(hopts, function(res) {
-			var finaltopic, data;
+			var finaltopic, 
+			data = '';
 			log("Status code: " + res.statusCode);
 			if (res.statusCode === 404) { // 404
 				log("Thread 404'd, clearing tcheck interval");
@@ -94,32 +96,25 @@ var threadCheck = function(thread) {
 				client.notice(rc.channel, 'Thread 404\'d!'); // Send notice to the channel
 				client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8'); // Write to the topic
 				clearInterval(tcheck); // Clear the interval
-			} else if(res.statusCode === 200) { // 200 OK
+				opGrabbed = false;
+			} else if(res.statusCode === 200 && opGrabbed !== true) { // 200 OK, and the OP's name hasn't been grabbed
 				res.on('data', function(chunk) {
-					data = data + chunk;
+					data += chunk;
 				});
 				res.on('end', function() {
-					// Shitty work around for parsing this shit
-					fs.writeFile('thedata', data, function() {
-						fs.readFile('thedata', function(err, ndata) {
-							if(err) {
-								throw err;
-							}
-							if(ndata) {
-								posts = JSON.parse(ndata);
-								op = posts['posts'][0].name;
-								finaltopic = {
-									'title': title,
-									'thread': thread,
-									'op': op || 'Anonymous',
-									'extra': extra
-								};
-								setTopic(finaltopic);
-								writeTopic(finaltopic);
-								client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8'); // Write to the topic
-							}
-						});
-					});
+					//data = data.replace(/^undefined/, ''); // TODO: Figure out what in the fuck is causing this and fix it
+					posts = JSON.parse(data.toString('utf8'));
+					op = posts['posts'][0].name;
+					finaltopic = {
+						'title': title,
+						'thread': thread,
+						'op': op || 'Anonymous',
+						'extra': extra
+					};
+					setTopic(finaltopic);
+					writeTopic(finaltopic);
+					client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8'); // Write to the topic
+					opGrabbed = true;
 				});
 			}
 		});
@@ -183,6 +178,7 @@ client.addListener('message', function(nick, to, message) {
 				client.notice(rc.channel, 'Thread changed: ' + thread);
 				client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
 				threadCheck(thread);
+				opGrabbed = false;
 			} else {
 				client.say(rc.channel, 'Current thread: ' + thread);
 			}
@@ -203,6 +199,7 @@ client.addListener('message', function(nick, to, message) {
 		if(GLOBAL.tcheck !== undefined && GLOBAL.tcheck !== null) { // Makes sure it doesn't try and clear an interval that doesn't exist
 			clearInterval(GLOBAL.tcheck);
 		}
+		opGrabbed = false;
 	} else if( message.match(/^\$extra /) && rc.allowedUsers.indexOf(nick) !== -1 ) {
 		var args = message.replace(/^\$extra /, '');
 		var ntopic = {
@@ -275,6 +272,7 @@ client.addListener('message', function(nick, to, message) {
 		if( thread != 'N/A' ) {
 			threadCheck(thread);
 		}
+		opGrabbed = true;
 	} else if( message.match(/^\$au /) && rc.admins.indexOf(nick) !== -1 ) {
 		var args = message.split(" "); 
 		args.splice(0, 1); // Slice off the first part
