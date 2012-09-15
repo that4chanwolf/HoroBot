@@ -156,8 +156,6 @@ client.addListener('registered', function() {
  * Here are all our base functions.
  * $thread - Sets the current thread.
  * $del - Deletes the current thread.
- * $extra - Sets the extra text that goes at the end of the topic
- * $title - Sets the begining text that is the 'intro' to the channel
  * $alert - Sends an alert to the channel
  * $version - Sends HoroBot's version to the channel
  */
@@ -200,28 +198,6 @@ client.addListener('message', function(nick, to, message) {
 			clearInterval(GLOBAL.tcheck);
 		}
 		opGrabbed = false;
-	} else if( message.match(/^\$extra /) && rc.allowedUsers.indexOf(nick) !== -1 ) {
-		var args = message.replace(/^\$extra /, '');
-		var ntopic = {
-			'title': title,
-			'thread': thread,
-			'op': op,
-			'extra': args
-		};
-		setTopic(ntopic);
-		writeTopic(ntopic);
-		client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
-	} else if( message.match(/^\$title /) && rc.allowedUsers.indexOf(nick) !== -1 ) {
-		var args = message.replace(/^\$title /, '');
-		var ntopic = {
-			'title': args,
-			'thread': thread,
-			'op': op,
-			'extra': extra
-		};
-		setTopic(ntopic);
-		writeTopic(ntopic);
-		client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
 	} else if( message.match(/^\$alert /) && rc.allowedUsers.indexOf(nick) !== -1 ) {
 		var args = message.replace(/^\$alert /, '');
 		client.notice(rc.channel, 'ALERT: ' + args);
@@ -240,6 +216,8 @@ client.addListener('message', function(nick, to, message) {
  * Admin functions
  * Made for managing HoroBot not completely pants-on-head restart-everytime-you-want-to-add-a-user retarded
  * $refresh - Refreshes config file, topic, and thread checker * Doesn't require admin privledges
+ * $extra - Sets the extra text that goes at the end of the topic
+ * $title - Sets the begining text that is the 'intro' to the channel
  * $au - Adds a user to the allowedUser list
  * $ru - Removes a user from the allowedUser list
  * $aa - Adds a user to the admin list
@@ -273,6 +251,28 @@ client.addListener('message', function(nick, to, message) {
 			threadCheck(thread);
 		}
 		opGrabbed = true;
+	} else if( message.match(/^\$extra /) && rc.admins.indexOf(nick) !== -1 ) {
+		var args = message.replace(/^\$extra /, '');
+		var ntopic = {
+			'title': title,
+			'thread': thread,
+			'op': op,
+			'extra': args
+		};
+		setTopic(ntopic);
+		writeTopic(ntopic);
+		client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
+	} else if( message.match(/^\$title /) && rc.admins.indexOf(nick) !== -1 ) {
+		var args = message.replace(/^\$title /, '');
+		var ntopic = {
+			'title': args,
+			'thread': thread,
+			'op': op,
+			'extra': extra
+		};
+		setTopic(ntopic);
+		writeTopic(ntopic);
+		client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
 	} else if( message.match(/^\$au /) && rc.admins.indexOf(nick) !== -1 ) {
 		var args = message.split(" "); 
 		args.splice(0, 1); // Slice off the first part
