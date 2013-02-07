@@ -38,7 +38,7 @@ Array.prototype.remove = function(from, to) {
 log("Parsing rc file");
 var rc = JSON.parse(fs.readFileSync('config.js', 'utf8'));
 log("Parsing modules file");
-var modules = require('./modules').modules;
+var modules = require('./lib/modules').modules;
 
 
 /*
@@ -164,7 +164,7 @@ client.addListener('message', function(nick, to, message) {
 	if( message.match(/^\$thread/) ) {
 		var args = message.split(' ');
 		if( args[1] && rc.allowedUsers.indexOf(nick) !== -1 ) { // If the user is in the allowedUsers
-			if( args[1].match( /^https?:\/\/.*/ ) ) {       // And the next argument matches a URL
+			if( /^https?:\/\/.*/.test(args[1]) ) {       // And the next argument matches a URL
 				log('New thread: ' + args[1]);
 				var ntopic = {
 					'title': title,
@@ -183,7 +183,7 @@ client.addListener('message', function(nick, to, message) {
 		} else {
 			client.say(rc.channel, 'Current thread: ' + thread);
 		}
-	} else if( message.match(/^\$del ?$/) && rc.allowedUsers.indexOf(nick) !== -1 ) {
+	} else if( /^\$del ?$/.test(message) && rc.allowedUsers.indexOf(nick) !== -1 ) {
 		var ntopic = {
 			'title': title,
 			'thread': 'N/A',
@@ -194,22 +194,21 @@ client.addListener('message', function(nick, to, message) {
 		writeTopic(ntopic);
 		client.notice(rc.channel, 'Thread deleted');
 		client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
-		if(GLOBAL.tcheck !== undefined && GLOBAL.tcheck !== null) { // Makes sure it doesn't try and clear an interval that doesn't exist
+		if(typeof GLOBAL.tcheck !== 'undefined' && GLOBAL.tcheck !== null) { // Makes sure it doesn't try and clear an interval that doesn't exist
 			clearInterval(GLOBAL.tcheck);
 		}
 		opGrabbed = false;
-	} else if( message.match(/^\$alert /) && rc.allowedUsers.indexOf(nick) !== -1 ) {
+	} else if( /^\$alert /.test(message) && rc.allowedUsers.indexOf(nick) !== -1 ) {
 		var args = message.replace(/^\$alert /, '');
 		client.notice(rc.channel, 'ALERT: ' + args);
-	} else if( message.match(/^\$version ?/) ) {
+	} else if( /^\$version ?/.test(message) ) {
 		client.say(rc.channel, 'HoroBot version 0.3.1. Git repo here: https://github.com/that4chanwolf/horobot');
 	}
-	for( var _i = 0; _i < rc.modules.length; _i++ ) { // Loop through all our modules
-		var i = rc.modules[_i];
-		if(message.match(modules[i][0])) {
-			modules[i][1](client, rc, nick, message);
+	rc.modules.forEach(function(module) { // Loop through all our modules
+		if(module[i][0].test(message)) {
+			module[i][1](client, rc, nick, message);
 		}
-	}
+	});
 });
 
 /*
@@ -224,7 +223,7 @@ client.addListener('message', function(nick, to, message) {
  * $ra - Removes a user from the admin list
  */
 client.addListener('message', function(nick, to, message) {
-	if( message.match(/^\$refresh ?$/) && rc.allowedUsers.indexOf(nick) !== -1 ) {
+	if( /^\$refresh ?$/.test(message) && rc.allowedUsers.indexOf(nick) !== -1 ) {
 		// We don't have to wory about other things continuing before our config is ready, so it's time for ASYNC ACTION
 		fs.readFile('config.js', function(err, data) {
 			if( err ) {
@@ -247,11 +246,11 @@ client.addListener('message', function(nick, to, message) {
 			}
 		});
 		client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8'); 
-		if( thread != 'N/A' ) {
+		if( thread !== 'N/A' ) {
 			threadCheck(thread);
 		}
 		opGrabbed = true;
-	} else if( message.match(/^\$extra /) && rc.admins.indexOf(nick) !== -1 ) {
+	} else if( /^\$extra /.test(message) && rc.admins.indexOf(nick) !== -1 ) {
 		var args = message.replace(/^\$extra /, '');
 		var ntopic = {
 			'title': title,
@@ -273,7 +272,7 @@ client.addListener('message', function(nick, to, message) {
 		setTopic(ntopic);
 		writeTopic(ntopic);
 		client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
-	} else if( message.match(/^\$au /) && rc.admins.indexOf(nick) !== -1 ) {
+	} else if( /^\$au /.test(message) && rc.admins.indexOf(nick) !== -1 ) {
 		var args = message.split(" "); 
 		args.splice(0, 1); // Slice off the first part
 		for(var i = 0; i < args.length; i++ ) {
@@ -291,7 +290,7 @@ client.addListener('message', function(nick, to, message) {
 				process.exit(1);
 			}
 		});
-	} else if( message.match(/^\$ru /) && rc.admins.indexOf(nick) !== -1 ) {
+	} else if( /^\$ru /.test(message) && rc.admins.indexOf(nick) !== -1 ) {
 		var args = message.split(" ");
 		args.splice(0, 1);
 		for(var i = 0; i < args.length; i++ ) {
@@ -309,7 +308,7 @@ client.addListener('message', function(nick, to, message) {
 				process.exit(1);
 			}
 		});
-	} else if( message.match(/^\$aa /) && rc.admins.indexOf(nick) !== -1 ) {
+	} else if( /^\$aa /.test(message) && rc.admins.indexOf(nick) !== -1 ) {
 		var args = message.split(" ");
 		args.splice(0, 1)
 		for(var i = 0; i < args.length; i++ ) {
@@ -328,7 +327,7 @@ client.addListener('message', function(nick, to, message) {
 				process.exit(1);
 			}
 		});
-	} else if( message.match(/^\$ra /) && rc.admins.indexOf(nick) !== -1 ) {
+	} else if( /^\$ra /.test(message) && rc.admins.indexOf(nick) !== -1 ) {
 		var args = message.split(" ");
 		args.splice(0, 1);
 		for( var i = 0; i < args.length; i++ ) {
