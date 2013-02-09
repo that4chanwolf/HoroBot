@@ -38,7 +38,7 @@ Array.prototype.remove = function(from, to) {
 log("Parsing rc file");
 var rc = JSON.parse(fs.readFileSync('config.js', 'utf8'));
 log("Parsing modules file");
-var modules = require('./lib/modules').modules;
+var modules = require('./lib/modules');
 
 
 /*
