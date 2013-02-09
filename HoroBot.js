@@ -102,7 +102,6 @@ var threadCheck = function(thread) {
 					data += chunk;
 				});
 				res.on('end', function() {
-					//data = data.replace(/^undefined/, ''); // TODO: Figure out what in the fuck is causing this and fix it
 					posts = JSON.parse(data.toString('utf8'));
 					op = posts['posts'][0].name;
 					finaltopic = {
@@ -161,54 +160,72 @@ client.addListener('registered', function() {
  */
 client.addListener('message', function(nick, to, message) {
 	log(nick + ", " + to + ", " + message);
-	if( message.match(/^\$thread/) ) {
-		var args = message.split(' ');
-		if( args[1] && rc.allowedUsers.indexOf(nick) !== -1 ) { // If the user is in the allowedUsers
-			if( /^https?:\/\/.*/.test(args[1]) ) {       // And the next argument matches a URL
-				log('New thread: ' + args[1]);
-				var ntopic = {
-					'title': title,
-					'thread': args[1],
-					'extra': extra
-				};
-				setTopic(ntopic);
-				writeTopic(ntopic);
-				client.notice(rc.channel, 'Thread changed: ' + thread);
-				client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
-				threadCheck(thread);
-				opGrabbed = false;
+	
+	var cmd = message.split(" ")[0].split(""); // Get our command out of the message
+	cmd.splice(0, 1);
+	cmd = cmd.join("");
+	
+	if(!(message[0] === (typeof rc.commandChar !== 'undefined' && rc.commandChar !== '' ? rc.commandChar : '$'))) return; // If our message's first character isn't our selected commandChar or '$', then don't even bother
+	
+	var args = message.split(' ');
+	args.splice(0, 1); // Get rid of our command from the arguments
+
+	switch(cmd) {
+		case 'thread':
+			if( args[0] && rc.allowedUsers.indexOf(nick) !== -1 ) { // If the user is in the allowedUsers
+				if( /^https?:\/\/.*/.test(args[0]) ) {       // And the next argument matches a URL
+					log('New thread: ' + args[0]);
+					var ntopic = {
+						'title': title,
+						'thread': args[0],
+						'extra': extra
+					};
+					setTopic(ntopic);
+					writeTopic(ntopic);
+					client.notice(rc.channel, 'Thread changed: ' + thread);
+					client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
+					threadCheck(thread);
+					opGrabbed = false;
+				} else {
+					client.say(rc.channel, 'Current thread: ' + thread);
+				}
 			} else {
 				client.say(rc.channel, 'Current thread: ' + thread);
 			}
-		} else {
-			client.say(rc.channel, 'Current thread: ' + thread);
-		}
-	} else if( /^\$del ?$/.test(message) && rc.allowedUsers.indexOf(nick) !== -1 ) {
-		var ntopic = {
-			'title': title,
-			'thread': 'N/A',
-			'op': 'N/A',
-			'extra': extra
-		};
-		setTopic(ntopic);
-		writeTopic(ntopic);
-		client.notice(rc.channel, 'Thread deleted');
-		client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
-		if(typeof GLOBAL.tcheck !== 'undefined' && GLOBAL.tcheck !== null) { // Makes sure it doesn't try and clear an interval that doesn't exist
-			clearInterval(GLOBAL.tcheck);
-		}
-		opGrabbed = false;
-	} else if( /^\$alert /.test(message) && rc.allowedUsers.indexOf(nick) !== -1 ) {
-		var args = message.replace(/^\$alert /, '');
-		client.notice(rc.channel, 'ALERT: ' + args);
-	} else if( /^\$version ?/.test(message) ) {
-		client.say(rc.channel, 'HoroBot version 0.3.1. Git repo here: https://github.com/that4chanwolf/horobot');
+			break;
+		case 'del':
+			if(rc.allowedUsers.indexOf(nick) === -1 ) break;
+			var ntopic = {
+				'title': title,
+				'thread': 'N/A',
+				'op': 'N/A',
+				'extra': extra
+			};
+			setTopic(ntopic);
+			writeTopic(ntopic);
+			client.notice(rc.channel, 'Thread deleted');
+			client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
+			if(typeof GLOBAL.tcheck !== 'undefined' && GLOBAL.tcheck !== null) { // Makes sure it doesn't try and clear an interval that doesn't exist
+				clearInterval(GLOBAL.tcheck);
+			}
+			opGrabbed = false;
+			break;
+		case 'alert':
+			if(rc.allowedUsers.indexOf(nick) === -1 ) break;
+			args = args.join(" ");
+			client.notice(rc.channel, 'ALERT: ' + args);
+			break;
+		case 'version':
+			client.say(rc.channel, 'HoroBot version 0.4.0. Git repo here: https://github.com/that4chanwolf/horobot');
+			break;
+		default:
+			rc.modules.forEach(function(module) { // Loop through all our modules
+				if(module[i][0].test(message)) {
+					module[i][1](client, rc, nick, message);
+				}
+			});
+			break;
 	}
-	rc.modules.forEach(function(module) { // Loop through all our modules
-		if(module[i][0].test(message)) {
-			module[i][1](client, rc, nick, message);
-		}
-	});
 });
 
 /*
@@ -223,128 +240,144 @@ client.addListener('message', function(nick, to, message) {
  * $ra - Removes a user from the admin list
  */
 client.addListener('message', function(nick, to, message) {
-	if( /^\$refresh ?$/.test(message) && rc.allowedUsers.indexOf(nick) !== -1 ) {
-		// We don't have to wory about other things continuing before our config is ready, so it's time for ASYNC ACTION
-		fs.readFile('config.js', function(err, data) {
-			if( err ) {
-				client.say(rc.channel, "There was an error reading/parsing the configuration file, shutting down...");
-				var msg = err.split("\n");
-				for(i in msg) {
-					log(msg[i]);
+	var cmd = message.split(" ")[0].split(""); // Get our command out of the message
+	cmd.splice(0, 1);
+	cmd = cmd.join("");
+	
+	if(!(message[0] === (typeof rc.commandChar !== 'undefined' && rc.commandChar !== '' ? rc.commandChar : '$'))) return; // If our message's first character isn't our selected commandChar or '$', then don't even bother
+	
+	var args = message.split(' ');
+	args.splice(0, 1); // Get rid of our command from the arguments
+
+	switch(cmd) {
+		case 'refresh':
+			if(rc.allowedUsers.indexOf(nick) === -1) break;
+			// We don't have to wory about other things continuing before our config is ready, so it's time for ASYNC ACTION
+			fs.readFile('config.js', function(err, data) {
+				if( err ) {
+					client.say(rc.channel, "There was an error reading/parsing the configuration file, shutting down...");
+					var msg = err.split("\n");
+					for(i in msg) {
+						log(msg[i]);
+					}
+					process.exit(1);
+				} else if( data ) {
+					rc = JSON.parse(data.toString('utf8'));
+					log("Configuration reloaded successfully");
 				}
-				process.exit(1);
-			} else if( data ) {
-				rc = JSON.parse(data.toString('utf8'));
-				log("Configuration reloaded successfully");
-			}
-		});
-		// Read our topic file
-		fs.readFile(rc.topicFile, function(err, data) {
-			if(err) throw err;
-			if(data) {
-				setTopic(JSON.parse(data.toString('utf8')));
-			}
-		});
-		client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8'); 
-		if( thread !== 'N/A' ) {
-			threadCheck(thread);
-		}
-		opGrabbed = true;
-	} else if( /^\$extra /.test(message) && rc.admins.indexOf(nick) !== -1 ) {
-		var args = message.replace(/^\$extra /, '');
-		var ntopic = {
-			'title': title,
-			'thread': thread,
-			'op': op,
-			'extra': args
-		};
-		setTopic(ntopic);
-		writeTopic(ntopic);
-		client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
-	} else if( message.match(/^\$title /) && rc.admins.indexOf(nick) !== -1 ) {
-		var args = message.replace(/^\$title /, '');
-		var ntopic = {
-			'title': args,
-			'thread': thread,
-			'op': op,
-			'extra': extra
-		};
-		setTopic(ntopic);
-		writeTopic(ntopic);
-		client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
-	} else if( /^\$au /.test(message) && rc.admins.indexOf(nick) !== -1 ) {
-		var args = message.split(" "); 
-		args.splice(0, 1); // Slice off the first part
-		for(var i = 0; i < args.length; i++ ) {
-			if( args[i] !== "" ) {
-				rc.allowedUsers.push(args[i]);
-			}
-		}
-		fs.writeFile('config.js', JSON.stringify(rc, null, "\t"), function(err, saved) {
-			if( err ) {
-				client.say(rc.channel, "There was an error writing the configuration file, shutting down...");
-				var msg = err.split("\n");
-				for(i in msg) {
-					log(msg[i]);
+			});
+			// Read our topic file
+			fs.readFile(rc.topicFile, function(err, data) {
+				if(err) throw err;
+				if(data) {
+					setTopic(JSON.parse(data.toString('utf8')));
 				}
-				process.exit(1);
+			});
+			client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8'); 
+			if( thread !== 'N/A' ) {
+				threadCheck(thread);
 			}
-		});
-	} else if( /^\$ru /.test(message) && rc.admins.indexOf(nick) !== -1 ) {
-		var args = message.split(" ");
-		args.splice(0, 1);
-		for(var i = 0; i < args.length; i++ ) {
-			if( rc.allowedUsers.indexOf(args[i]) !== -1 && args[i] !== "" ) {
-				rc.allowedUsers.remove(rc.allowedUsers.indexOf(args[i]));
-			}		
-		}
-		fs.writeFile('config.js', JSON.stringify(rc, null, "\t"), function(err, saved) {
-			if( err ) {
-				client.say(rc.channel, "There was an error writing the configuration file, shutting down...");
-				var msg = err.split("\n");
-				for(i in msg) {
-					log(msg[i]);
+			opGrabbed = true;
+			break;
+		case 'extra':
+			if(rc.admins.indexOf(nick) === -1) break;
+			args = args.join(" ");
+			var ntopic = {
+				'title': title,
+				'thread': thread,
+				'op': op,
+				'extra': args
+			};
+			setTopic(ntopic);
+			writeTopic(ntopic);
+			client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
+			break;
+		case 'title':
+			if(rc.admins.indexOf(nick) === -1) break;
+			var args = args.join(" ");
+			var ntopic = {
+				'title': args,
+				'thread': thread,
+				'op': op,
+				'extra': extra
+			};
+			setTopic(ntopic);
+			writeTopic(ntopic);
+			client.conn.write('TOPIC ' + rc.channel + ' :' + topic + '\r\n', 'utf8');
+			break;
+		case 'au':
+			if(rc.admins.indexOf(nick) === -1) break;
+			for(var i = 0; i < args.length; i++ ) {
+				if( args[i] !== "" ) {
+					rc.allowedUsers.push(args[i]);
 				}
-				process.exit(1);
 			}
-		});
-	} else if( /^\$aa /.test(message) && rc.admins.indexOf(nick) !== -1 ) {
-		var args = message.split(" ");
-		args.splice(0, 1)
-		for(var i = 0; i < args.length; i++ ) {
-			if( args[i] !== "" ) {
-				rc.admins.push(args[i]);
-				rc.allowedUsers.push(args[i]);
-			}
-		}
-		fs.writeFile('config.js', JSON.stringify(rc, null, "\t"), function(err, saved) {
-			if( err ) {
-				client.say(rc.channel, "There was an error writing the configuration file, shutting down...");
-				var msg = err.split("\n");
-				for(i in msg) {
-					log(msg[i]);
+			fs.writeFile('config.js', JSON.stringify(rc, null, "\t"), function(err, saved) {
+				if( err ) {
+					client.say(rc.channel, "There was an error writing the configuration file, shutting down...");
+					var msg = err.split("\n");
+					for(i in msg) {
+						log(msg[i]);
+					}
+					process.exit(1);
 				}
-				process.exit(1);
+			});
+			break;
+		case 'ru':
+			if(rc.admins.indexOf(nick) === -1) break;
+			for(var i = 0; i < args.length; i++ ) {
+				if( rc.allowedUsers.indexOf(args[i]) !== -1 && args[i] !== "" ) {
+					rc.allowedUsers.remove(rc.allowedUsers.indexOf(args[i]));
+				}		
 			}
-		});
-	} else if( /^\$ra /.test(message) && rc.admins.indexOf(nick) !== -1 ) {
-		var args = message.split(" ");
-		args.splice(0, 1);
-		for( var i = 0; i < args.length; i++ ) {
-			if( rc.allowedUsers.indexOf(args[i]) !== -1 && rc.admins.indexOf(args[i]) !== -1 && args[i] !== "" ) {
-				rc.allowedUsers.remove(rc.allowedUsers.indexOf(args[i]));
-				rc.admins.remove(rc.admins.indexOf(args[i]));
-			}
-		}
-		fs.writeFile('config.js', JSON.stringify(rc, null, "\t"), function(err, saved) {
-			if( err ) {
-				client.say(rc.channel, "There was an error writing the configuration file, shutting down...");
-				var msg = err.split("\n");
-				for(i in msg) {
-					log(msg[i]);
+			fs.writeFile('config.js', JSON.stringify(rc, null, "\t"), function(err, saved) {
+				if( err ) {
+					client.say(rc.channel, "There was an error writing the configuration file, shutting down...");
+					var msg = err.split("\n");
+					for(i in msg) {
+						log(msg[i]);
+					}
+					process.exit(1);
 				}
-				process.exit(1);
+			});
+			break;
+		case 'aa':
+			if(rc.admins.indexOf(nick) === -1) break;
+			for(var i = 0; i < args.length; i++ ) {
+				if( args[i] !== "" ) {
+					rc.admins.push(args[i]);
+					rc.allowedUsers.push(args[i]);
+				}
 			}
-		});	
+			fs.writeFile('config.js', JSON.stringify(rc, null, "\t"), function(err, saved) {
+				if( err ) {
+					client.say(rc.channel, "There was an error writing the configuration file, shutting down...");
+					var msg = err.split("\n");
+					for(i in msg) {
+						log(msg[i]);
+					}
+					process.exit(1);
+				}
+			});
+			break;
+		case 'ra':
+			if(rc.admins.indexOf(nick) === -1) break;
+			for( var i = 0; i < args.length; i++ ) {
+				if( rc.allowedUsers.indexOf(args[i]) !== -1 && rc.admins.indexOf(args[i]) !== -1 && args[i] !== "" ) {
+					rc.allowedUsers.remove(rc.allowedUsers.indexOf(args[i]));
+					rc.admins.remove(rc.admins.indexOf(args[i]));
+				}
+			}
+			fs.writeFile('config.js', JSON.stringify(rc, null, "\t"), function(err, saved) {
+				if( err ) {
+					client.say(rc.channel, "There was an error writing the configuration file, shutting down...");
+					var msg = err.split("\n");
+					for(i in msg) {
+						log(msg[i]);
+					}
+					process.exit(1);
+				}
+			});
+			break;
 	}
 });
