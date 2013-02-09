@@ -1,4 +1,4 @@
-## HoroBot ##
+## HoroBot 0.4.0 ##
 HoroBot is an IRC bot written in Node.js, meant for the management of 4chan threads.
 
 ***
