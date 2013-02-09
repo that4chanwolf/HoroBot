@@ -219,11 +219,11 @@ client.addListener('message', function(nick, to, message) {
 			client.say(rc.channel, 'HoroBot version 0.4.0. Git repo here: https://github.com/that4chanwolf/horobot');
 			break;
 		default:
-			rc.modules.forEach(function(module) { // Loop through all our modules
+			for(var i = 0; i < rc.modules.length; i++) { // Loop through all our modules
 				if(module[i][0].test(message)) {
 					module[i][1](client, rc, nick, message);
 				}
-			});
+			};
 			break;
 	}
 });
