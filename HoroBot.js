@@ -219,7 +219,9 @@ client.addListener('message', function(nick, to, message) {
 			client.say(rc.channel, 'HoroBot version 0.4.0. Git repo here: https://github.com/that4chanwolf/horobot');
 			break;
 		default:
-			for(var i = 0; i < rc.modules.length; i++) { // Loop through all our modules
+			var _i, i;
+			for(_i = 0; _i < rc.modules.length; _i++) { // Loop through all our modules
+				i = rc.modules[_i];
 				if(modules[i][0].test(message)) {
 					modules[i][1](client, rc, nick, message);
 				}
